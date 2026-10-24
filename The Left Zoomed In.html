@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Left, Zoomed In</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+<style>
+html,body{height:100%;margin:0;background:#0b0b0d;overflow:hidden;font-family:"Source Serif 4",Georgia,serif}
+*{box-sizing:border-box}
+#stage{position:fixed;inset:0;display:flex;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);transition:background .4s}
+.split{flex:1;display:flex;min-height:0;min-width:0;gap:3px}
+.split.row{flex-direction:row}.split.column{flex-direction:column}
+.panel{position:relative;flex:1 1 0;min-width:0;min-height:0;overflow:hidden;cursor:pointer;transition:flex-grow .7s cubic-bezier(.65,0,.25,1),opacity .5s}
+.panel::after{content:"";position:absolute;background:var(--s)}
+.panel:focus-visible{outline:4px solid #fff;outline-offset:-8px}
+.in{height:100%;overflow:auto;animation:fade .6s .25s both}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h2{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;line-height:1.02;letter-spacing:-.02em;margin:0;width:100%;max-width:100%;overflow-wrap:normal;word-break:normal;hyphens:none;text-wrap:balance}
+p{margin:0;line-height:1.45}
+.bands .panel::after{left:0;top:0;bottom:0;width:clamp(8px,1.1vw,16px)}
+.bands .in{display:flex;align-items:center;gap:clamp(16px,3vw,48px);padding:0 clamp(20px,4vw,64px) 0 calc(clamp(8px,1.1vw,16px) + clamp(16px,2.6vw,40px))}
+.bands h2{flex:0 0 clamp(170px,30%,420px);font-size:clamp(22px,2.7vw,40px)}
+.bands p{font-size:clamp(13px,1.2vw,17px);max-width:62ch}
+.cols .panel::after,.zoom::after{left:0;right:0;bottom:0;height:clamp(8px,1.5vw,18px)}
+.cols .in{display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2vw,28px);padding:clamp(28px,4vw,64px) clamp(22px,3vw,52px) calc(clamp(8px,1.5vw,18px) + clamp(24px,3vw,48px))}
+.cols h2{font-size:clamp(30px,3.8vw,56px)}
+.cols p{font-size:clamp(15px,1.35vw,19px);max-width:42ch}
+.zoom .in{display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2vw,28px);padding:0 clamp(24px,8vw,140px)}
+.zoom h2{font-size:clamp(54px,12vw,170px)}
+.zoom p{font-size:clamp(18px,2.2vw,30px);max-width:38ch}
+@media (max-width:760px){
+ .bands .in{flex-direction:column;align-items:flex-start;justify-content:center;gap:4px}
+ .bands h2{flex:none;font-size:20px}
+ .bands p{font-size:13px;display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .cols .in{padding-top:24px}
+}
+#bar{position:fixed;z-index:10;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translate(-50%,-180%);transition:transform .35s cubic-bezier(.3,.8,.3,1);display:flex;align-items:center;gap:2px;padding:5px;width:fit-content;max-width:calc(100% - 20px);background:rgba(14,14,18,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.14);border-radius:999px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+#bar.show{transform:translate(-50%,0)}
+#bar button{font:700 14px "Bricolage Grotesque",system-ui,sans-serif;color:#fff;background:none;border:0;border-radius:999px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+#bar button:hover{background:rgba(255,255,255,.14)}
+#bar button:focus-visible{outline:2px solid #fff}
+#crumbs{display:flex;align-items:center;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+#crumbs button{opacity:.65;font-weight:600}#crumbs button:last-child{opacity:1;font-weight:800}
+#crumbs button{flex:none}
+#crumbs i{color:rgba(255,255,255,.4);font-style:normal}
+.sep{width:1px;height:20px;background:rgba(255,255,255,.2);margin:0 4px;flex:none}
+#about{position:fixed;z-index:9;left:50%;top:calc(env(safe-area-inset-top,0px) + 66px);width:min(520px,calc(100% - 20px));transform:translate(-50%,-12px);opacity:0;pointer-events:none;transition:.3s;background:rgba(14,14,18,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:#fff;border-radius:18px;padding:18px 20px}
+#about.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+#about b{display:block;font:800 20px "Bricolage Grotesque",system-ui,sans-serif;margin-bottom:6px}#about p{font-size:16px}
+#hint{position:fixed;z-index:8;top:calc(env(safe-area-inset-top,0px) + 2px);left:50%;transform:translateX(-50%);width:80px;height:26px;background:none;border:0;cursor:pointer;transition:opacity .3s}
+#hint::before{content:"";position:absolute;left:18px;right:18px;top:10px;height:5px;border-radius:5px;background:rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+#hint.gone{opacity:0;pointer-events:none}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:700 14px "Bricolage Grotesque",system-ui,sans-serif;padding:7px 14px;border-radius:999px;color:inherit;border:1.5px solid currentColor;opacity:.9;cursor:pointer;background:rgba(255,255,255,.08);white-space:nowrap}
+.chip:hover,.chip:focus-visible{opacity:1;background:rgba(255,255,255,.24);outline:none}
+@keyframes flash{0%,100%{box-shadow:inset 0 0 0 0 rgba(255,255,255,0)}40%{box-shadow:inset 0 0 0 8px rgba(255,255,255,.85)}}
+.panel.flash{animation:flash 1.1s 2}
+#tip{position:fixed;z-index:20;max-width:300px;padding:10px 13px;border-radius:12px;background:rgba(14,14,18,.95);color:#fff;font:14px/1.4 "Source Serif 4",Georgia,serif;pointer-events:none;display:none;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="stage"></div><div id="about"></div><div id="tip"></div><div id="bar"></div><button id="hint" aria-label="Show menu"></button>
+<script>
+const RD="#B8192E",MR="#6E0E1E",BK="#17181C",DK="#2B2D33",GR="#1F7A4D",FR="#17523A",GD="#D9A521",BL="#2A5A8C",NV="#1D3A5F",CR="#EDE6D6",OR="#D26A1E",PU="#5B3A8C",TL="#1E6F73",CO="#C94F3D",WN="#6E1B3A",BG="#008080";
+const idea = (name, c, desc, kids = []) => ({ name, c, desc, kids });
+
+const orthodoxMarxism = idea(
+  "Orthodox Marxism",
+  [MR, GD],
+  "Posits that the transition to socialism is an inevitable historical necessity driven strictly by objective economic laws and the internal contradictions of capitalism. Organizes proletarians into mass working-class associations for the impending systemic collapse."
+);
+
+const maoism = idea(
+  "Maoism",
+  [RD, GD],
+  "Adapts Marxism-Leninism to agrarian societies, basing revolution on the peasantry and protracted people's war. Initiates continuous cultural revolution against new elites."
+);
+
+const guevarism = idea(
+  "Guevarism",
+  [BK, RD],
+  "Asserts that a vanguard guerrilla foco can spark revolution. Focuses on the creation of a 'new man' driven by moral rather than material incentives."
+);
+
+const castroism = idea(
+  "Castroism",
+  [GR, RD],
+  "Relies on guerrilla warfare to establish a socialist one-party state. Aligns heavily with national liberation and Soviet bloc integration."
+);
+
+const dengism = idea(
+  "Dengism",
+  [OR, GD],
+  "Introduces market-oriented economic reforms under one-party rule. Seeks modernization and wealth accumulation as a prerequisite for communism."
+);
+
+const trotskyism = idea(
+  "Trotskyism",
+  [WN, CR],
+  "Advocates for permanent revolution on a global scale and workers' democracy. Criticizes the Stalinist bureaucracy as a parasitic caste."
+);
+
+const titoism = idea(
+  "Titoism",
+  [BL, RD],
+  "Diverges from Soviet hegemony by pursuing independent national communist policies. Implements socialist workers' self-management and non-alignment in foreign policy."
+);
+
+const sovietML = idea(
+  "Marxism-Leninism",
+  [MR, GD],
+  "Operates on a planned economy, a single vanguard party, and the doctrine of socialism in one country. Represents the state ideology of the USSR codified under Stalin."
+);
+
+const marxismLeninism = idea(
+  "Marxism-Leninism",
+  [RD, GD],
+  "Unites various state and party doctrines tracing back to the Soviet model of Lenin's theories. Differs internally on how strictly to adhere to the original Soviet blueprint.",
+  [sovietML, maoism, guevarism, castroism, dengism, titoism]
+);
+
+const leninism = idea(
+  "Leninism",
+  [RD, GD],
+  "Introduces the vanguard party as the intellectual leadership of the working class. Enforces democratic centralism to ensure absolute unity after internal debates conclude.",
+  [marxismLeninism, trotskyism]
+);
+
+const westernMarxism = idea(
+  "Western Marxism",
+  [PU, CR],
+  "Focuses on academic, cultural, and ideological critiques rather than direct mass political organization. Explores themes of hegemony, reification, and dialectics."
+);
+
+const antiColonialMarxism = idea(
+  "Anti-Colonial Marxism",
+  [RD, GR],
+  "Adapts Marxist analysis to national liberation struggles against imperial powers. Emphasizes the role of colonized subjects in overthrowing capital and empire."
+);
+
+const revisionism = idea(
+  "Revisionism",
+  [WN, CR],
+  "Rejects the inevitability of capitalist collapse and the necessity of violent revolution. Seeks to achieve socialism gradually through democratic reforms and parliamentary politics."
+);
+
+const heterodoxMarxism = idea(
+  "Heterodox Marxism",
+  [CO, GD],
+  "Diverges substantially from Orthodox Marxism and Leninism. Questions the inevitability of revolution, the vanguard role of the party, and the traditional nature of the state.",
+  [westernMarxism, antiColonialMarxism]
+);
+
+const communism = idea(
+  "Marxism",
+  [MR, GD],
+  "Asserts that history moves through class struggle until workers overthrow capitalism. Aims to establish a completely classless and stateless society.",
+  [orthodoxMarxism, leninism, heterodoxMarxism]
+);
+
+const anarchoCommunism = idea(
+  "Anarcho-Communism",
+  [RD, BK],
+  "Advocates the abolition of the state, capitalism, wage labor, and private property. Distributes resources based on need and relies on voluntary mutual aid."
+);
+
+const collectivistAnarchism = idea(
+  "Collectivist Anarchism",
+  [BK, RD],
+  "Opposes state authority while advocating for the collective ownership of the means of production. Distributes compensation based on the amount of labor contributed rather than need."
+);
+
+const anarchoSyndicalism = idea(
+  "Anarcho-Syndicalism",
+  [MR, BK],
+  "Uses revolutionary industrial unionism and general strikes to overthrow capitalism and the state. Reorganizes society based on confederations of labor syndicates."
+);
+
+const socialAnarchism = idea(
+  "Social Anarchism",
+  [BK, RD],
+  "Emphasizes communal ownership, mutual aid, and voluntary federations. Encompasses collectivist, communist, and syndicalist branches of anarchist thought.",
+  [anarchoCommunism, collectivistAnarchism, anarchoSyndicalism]
+);
+
+const mutualism = idea(
+  "Mutualism",
+  [BK, OR],
+  "Supports a market economy based on localism, free associations, cooperatives, free commerce, just price, and mutual credit banks. Advocates for the gradual abolition of capitalism and the state through peaceful means."
+);
+
+const insurrectionaryAnarchism = idea(
+  "Insurrectionary Anarchism",
+  [BK, MR],
+  "Rejects formal mass organizations in favor of informal affinity groups. Prioritizes direct, immediate attack and class conflict over gradual systemic building."
+);
+
+const socialEcology = idea(
+  "Social Ecology",
+  [BG, GD],
+  "Attributes ecological and social crises directly to hierarchical power structures. Proposes restructuring society into decentralized, democratic, and ecologically sustainable communities."
+);
+
+const veganarchism = idea(
+  "Veganarchism",
+  [FR, BK],
+  "Combines animal liberation with anarchist philosophy. Argues that the state and capitalism rely fundamentally on the exploitation and commodification of non-human animals."
+);
+
+const primitivism = idea(
+  "Anarcho-Primitivism",
+  [BK, FR],
+  "Critiques civilization, technology, and domestication as sources of hierarchy and ecological destruction. Advocates dismantling industrial society in favor of small-scale, non-hierarchical communities."
+);
+
+const greenAnarchism = idea(
+  "Green Anarchism",
+  [BK, FR],
+  "Fuses the anarchist critique of hierarchy with environmentalism. Argues that human domination of nature stems directly from the domination of humans over humans.",
+  [primitivism, socialEcology, veganarchism]
+);
+
+const communalism = idea(
+  "Communalism",
+  [FR, RD],
+  "Proposes libertarian municipalism through direct democratic popular assemblies. Confederates municipalities to challenge and ultimately replace the nation-state."
+);
+
+const christianAnarchism = idea(
+  "Christian Anarchism",
+  [BK, PU],
+  "Rejects the state and traditional church hierarchy by asserting that God is the sole legitimate authority. Emphasizes pacifism and voluntary poverty based on the teachings of Leo Tolstoy."
+);
+
+const anarchism = idea(
+  "Anarchism",
+  [BK, BK],
+  "Rejects the state and hierarchy entirely. Seeks to establish a radically egalitarian society based on voluntary association.",
+  [socialAnarchism, mutualism, insurrectionaryAnarchism, greenAnarchism, communalism, christianAnarchism]
+);
+
+const baathism = idea(
+  "Ba'athism",
+  [RD, BK],
+  "Synthesizes pan-Arabism and state-led economic planning to create a unified Arab nation. Operates through a secular vanguard party structure to modernize society."
+);
+
+const nasserism = idea(
+  "Nasserism",
+  [RD, BK],
+  "Combines Arab nationalism, anti-imperialism, and state-led economic modernization. Implements land reforms and nationalizes key industries under a one-party framework."
+);
+
+const fabianism = idea(
+  "Fabianism",
+  [WN, GD],
+  "Advances a gradual, reformist transition to socialism through democratic processes, education, and research. Rejects revolutionary overthrow in favor of permeating existing institutions."
+);
+
+const guildSocialism = idea(
+  "Guild Socialism",
+  [GD, RD],
+  "Advocates worker control of industry through national guilds. Balances producer control with state representation of consumers."
+);
+
+const democraticSocialism = idea(
+  "Democratic Socialism",
+  [RD, CR],
+  "Pursues the abolition of capitalism and the establishment of a socialist economy through democratic, parliamentary means. Retains the ultimate goal of collectivizing the means of production.",
+  [revisionism, fabianism, guildSocialism]
+);
+
+const owenism = idea(
+  "Owenism",
+  [BL, CR],
+  "Seeks to establish utopian socialism through cooperative, self-sustaining intentional communities. Focuses on social reform and improving working conditions through moral suasion."
+);
+
+const fourierism = idea(
+  "Fourierism",
+  [TL, GD],
+  "Organizes society into self-sufficient communes known as phalansteries. Designs labor to align with natural human passions and desires."
+);
+
+const saintSimonianism = idea(
+  "Saint-Simonianism",
+  [NV, GD],
+  "Advocates a scientifically and industrially managed society directed by experts. Aims to eliminate poverty and improve the conditions of the working class through rational planning."
+);
+
+const utopianSocialism = idea(
+  "Utopian Socialism",
+  [BL, CR],
+  "Envisions ideal egalitarian societies achieved through peaceful, voluntary, and moral transformation. Predates and contrasts with the scientific analysis of historical materialism.",
+  [owenism, fourierism, saintSimonianism]
+);
+
+const ujamaa = idea(
+  "Ujamaa",
+  [GR, GD],
+  "Collectivizes agriculture and rural villages based on traditional familyhood. Aims for self-reliance and egalitarianism in post-colonial Tanzania."
+);
+
+const senghorianSocialism = idea(
+  "Senghorian Socialism",
+  [GD, BL],
+  "Combines socialist principles with the cultural philosophy of Négritude. Denies the existence of class struggle in traditional African societies."
+);
+
+const africanSocialism = idea(
+  "African Socialism",
+  [GD, GR],
+  "Roots socialist development in indigenous African traditions of community and shared wealth. Typically rejects the Marxist concept of class struggle.",
+  [ujamaa, senghorianSocialism]
+);
+
+const ecoSocialism = idea(
+  "Eco-Socialism",
+  [GR, RD],
+  "Attributes ecological crises directly to the capitalist imperative for infinite growth. Demands the democratic socialization of production to achieve environmental sustainability."
+);
+
+const socialism = idea(
+  "Socialism",
+  [RD, MR],
+  "Seeks to replace capitalism with a system eliminating exploitation through capitalist private property.",
+  [communism, anarchism, democraticSocialism, utopianSocialism, africanSocialism, ecoSocialism]
+);
+
+const nordicModel = idea(
+  "Nordic Model",
+  [NV, GD],
+  "Combines a comprehensive welfare state and multi-level collective bargaining with a free-market capitalist economy. Ensures high social mobility and economic security."
+);
+
+const thirdWay = idea(
+  "Third Way",
+  [OR, CR],
+  "Reconciles right-wing economic policies with left-wing social policies. Emphasizes public-private partnerships, fiscal conservatism, and a reduced welfare state."
+);
+
+const laborism = idea(
+  "Laborism",
+  [RD, CR],
+  "Advances the interests of the working class primarily through trade unionism and associated political parties. Seeks pragmatic reforms within the capitalist system."
+);
+
+const socialDemocracy = idea(
+  "Social Democracy",
+  [NV, GD],
+  "Supports economic and social interventions to promote social justice within a capitalist mixed economy. Abandons the revolutionary goal of completely abolishing capitalism.",
+  [nordicModel, thirdWay, laborism]
+);
+
+const lulism = idea(
+  "Lulism",
+  [RD, CR],
+  "Combines orthodox macroeconomic policies with targeted social welfare programs and minimum wage increases. Achieves poverty reduction without fundamentally restructuring capital accumulation."
+);
+
+const newdevelopmentalism = idea(
+  "New Developmentalism",
+  [GR, CR],
+  "Advocates state intervention, industrial policy, and exchange rate management to promote economic growth. Focuses on middle-income countries overcoming structural stagnation.",
+  [lulism]
+);
+
+const trabalhismo = idea(
+  "Trabalhismo",
+  [GR, GD],
+  "Promotes state-led industrialization and strong labor rights under populist leadership. Integrates the working class into the state apparatus."
+);
+
+const peronism = idea(
+  "Peronism",
+  [NV, CR],
+  "Blends nationalism, labor rights, and social welfare in a populist framework. Seeks a third position independent of both liberal capitalism and international communism."
+);
+
+const cardenismo = idea(
+  "Cardenismo",
+  [GD, GR],
+  "Emphasizes agrarian reform, nationalization of strategic resources, and mass unionization. Consolidates a corporatist state structure."
+);
+
+const olddevelopmentalism = idea(
+  "Old Developmentalism",
+  [RD, GD],
+  "Relies on import substitution industrialization and heavy state intervention to modernize developing economies. Dominates post-colonial and Latin American economic policy mid-20th century.",
+  [trabalhismo, peronism, cardenismo, nasserism, baathism]
+);
+
+const developmentalism = idea(
+  "Developmentalism",
+  [OR, BK],
+  "Prioritizes rapid economic growth and modernization through active state direction of the economy. Utilizes protectionism and public credit in the periphery.",
+  [olddevelopmentalism, newdevelopmentalism]
+);
+
+const newLiberalism = idea(
+  "New Liberalism",
+  [BL, GD],
+  "Argues that individual liberty requires state intervention to address poverty, healthcare, and education. Shifts from strictly negative liberty to encompassing positive liberty."
+);
+
+const progressivism = idea(
+  "Progressivism",
+  [NV, RD],
+  "Seeks to reform and regulate the excesses of capitalism through government action. Focuses on anti-monopoly laws, labor rights, and direct democracy mechanisms."
+);
+
+const newDealLiberalism = idea(
+  "New Deal Liberalism",
+  [TL, CR],
+  "Advocates an active federal government to provide economic security and regulate the private sector. Emerges as a response to economic depression through public works and social safety nets."
+);
+
+const georgism = idea(
+  "Georgism",
+  [GR, GD],
+  "Proposes a single tax on the unimproved value of land while eliminating taxes on labor and investment. Argues that natural resources belong equally to all members of society."
+);
+
+const socialLiberalism = idea(
+  "Social Liberalism",
+  [BL, GD],
+  "Combines support for civil liberties and a market economy with an expansive view of the state's role in providing social welfare. Sits at the intersection of classical liberalism and social democracy.",
+  [newLiberalism, progressivism, newDealLiberalism, georgism]
+);
+
+const reformism = idea(
+  "Reformism",
+  [CO, CR],
+  "Rejects the revolutionary overthrow of capitalism in favor of gradual modification. Pursues change through democratic politics, unions, and social movements.",
+  [socialDemocracy, developmentalism, socialLiberalism]
+);
+
+const theLeft = idea(
+  "The Left",
+  [RD, BK],
+  "Encompasses political ideologies that support equality and concern for the disadvantaged.",
+  [socialism, reformism]
+);
+
+const T = theLeft;
+
+const PT = {
+  "The Left": "A Esquerda",
+  "Socialism": "Socialismo",
+  "Marxism": "Marxismo",
+  "Orthodox Marxism": "Marxismo Ortodoxo",
+  "Maoism": "Maoismo",
+  "Guevarism": "Guevarismo",
+  "Castroism": "Castroísmo",
+  "Dengism": "Dengismo",
+  "Trotskyism": "Trotskismo",
+  "Titoism": "Titoísmo",
+  "Marxism-Leninism": "Marxismo-Leninismo",
+  "Leninism": "Leninismo",
+  "Western Marxism": "Marxismo Ocidental",
+  "Anti-Colonial Marxism": "Marxismo Anticolonial",
+  "Revisionism": "Revisionismo",
+  "Heterodox Marxism": "Marxismo Heterodoxo",
+  "Anarchism": "Anarquismo",
+  "Anarcho-Communism": "Anarcocomunismo",
+  "Collectivist Anarchism": "Anarquismo Coletivista",
+  "Anarcho-Syndicalism": "Anarcossindicalismo",
+  "Social Anarchism": "Anarquismo Social",
+  "Mutualism": "Mutualismo",
+  "Insurrectionary Anarchism": "Anarquismo Insurrecional",
+  "Social Ecology": "Ecologia Social",
+  "Veganarchism": "Anarquismo Vegano",
+  "Anarcho-Primitivism": "Anarcoprimitivismo",
+  "Green Anarchism": "Anarquismo Verde",
+  "Communalism": "Comunalismo",
+  "Christian Anarchism": "Anarquismo Cristão",
+  "Ba'athism": "Baathismo",
+  "Nasserism": "Nasserismo",
+  "Fabianism": "Fabianismo",
+  "Guild Socialism": "Socialismo de Guildas",
+  "Democratic Socialism": "Socialismo Democrático",
+  "Owenism": "Owenismo",
+  "Fourierism": "Fourierismo",
+  "Saint-Simonianism": "Saint-simonismo",
+  "Utopian Socialism": "Socialismo Utópico",
+  "Ujamaa": "Ujamaa",
+  "Senghorian Socialism": "Socialismo Senghoriano",
+  "African Socialism": "Socialismo Africano",
+  "Eco-Socialism": "Eco-socialismo",
+  "Nordic Model": "Modelo Nórdico",
+  "Third Way": "Terceira Via",
+  "Laborism": "Trabalhismo",
+  "Social Democracy": "Social-democracia",
+  "Lulism": "Lulismo",
+  "New Developmentalism": "Novo Desenvolvimentismo",
+  "Trabalhismo": "Trabalhismo",
+  "Peronism": "Peronismo",
+  "Cardenismo": "Cardenismo",
+  "Old Developmentalism": "Velho Desenvolvimentismo",
+  "Developmentalism": "Desenvolvimentismo",
+  "New Liberalism": "Novo Liberalismo",
+  "Progressivism": "Progressismo",
+  "New Deal Liberalism": "Liberalismo do New Deal",
+  "Georgism": "Georgismo",
+  "Social Liberalism": "Liberalismo Social",
+  "Reformism": "Reformismo",
+  "Back": "Voltar",
+  "About": "Sobre",
+  "Show menu": "Mostrar menu",
+  "The Left, Zoomed In": "A Esquerda em Detalhe",
+  "Switch to Portuguese": "Mudar para português",
+  "Switch to English": "Mudar para inglês",
+  "Posits that the transition to socialism is an inevitable historical necessity driven strictly by objective economic laws and the internal contradictions of capitalism. Organizes proletarians into mass working-class associations for the impending systemic collapse.": "Defende que a transição ao socialismo é uma necessidade histórica inevitável, impulsionada por leis econômicas objetivas e pelas contradições internas do capitalismo. Organiza o proletariado em associações de massa diante do colapso iminente do sistema.",
+  "Adapts Marxism-Leninism to agrarian societies, basing revolution on the peasantry and protracted people's war. Initiates continuous cultural revolution against new elites.": "Adapta o marxismo-leninismo às sociedades agrárias, apoiando a revolução no campesinato e na guerra popular prolongada. Propõe uma revolução cultural contínua contra novas elites.",
+  "Asserts that a vanguard guerrilla foco can spark revolution. Focuses on the creation of a 'new man' driven by moral rather than material incentives.": "Afirma que um foco guerrilheiro de vanguarda pode desencadear uma revolução. Enfatiza a criação de um “homem novo”, movido por incentivos morais em vez de materiais.",
+  "Relies on guerrilla warfare to establish a socialist one-party state. Aligns heavily with national liberation and Soviet bloc integration.": "Baseia-se na guerrilha para estabelecer um Estado socialista de partido único. Alinha-se fortemente à libertação nacional e à integração ao bloco soviético.",
+  "Introduces market-oriented economic reforms under one-party rule. Seeks modernization and wealth accumulation as a prerequisite for communism.": "Introduz reformas econômicas orientadas pelo mercado sob o governo de um partido único. Busca modernização e acumulação de riqueza como pré-requisitos para o comunismo.",
+  "Advocates for permanent revolution on a global scale and workers' democracy. Criticizes the Stalinist bureaucracy as a parasitic caste.": "Defende a revolução permanente em escala global e a democracia dos trabalhadores. Critica a burocracia stalinista como uma casta parasitária.",
+  "Diverges from Soviet hegemony by pursuing independent national communist policies. Implements socialist workers' self-management and non-alignment in foreign policy.": "Afasta-se da hegemonia soviética ao adotar políticas comunistas nacionais independentes. Implementa a autogestão socialista dos trabalhadores e o não alinhamento na política externa.",
+  "Operates on a planned economy, a single vanguard party, and the doctrine of socialism in one country. Represents the state ideology of the USSR codified under Stalin.": "Baseia-se em uma economia planificada, em um partido único de vanguarda e na doutrina do socialismo em um só país. Representa a ideologia estatal da URSS codificada sob Stalin.",
+  "Unites various state and party doctrines tracing back to the Soviet model of Lenin's theories. Differs internally on how strictly to adhere to the original Soviet blueprint.": "Reúne doutrinas estatais e partidárias derivadas do modelo soviético das teorias de Lenin. Seus adeptos divergem sobre o grau de fidelidade ao modelo original.",
+  "Introduces the vanguard party as the intellectual leadership of the working class. Enforces democratic centralism to ensure absolute unity after internal debates conclude.": "Apresenta o partido de vanguarda como liderança intelectual da classe trabalhadora. Adota o centralismo democrático para garantir unidade após os debates internos.",
+  "Focuses on academic, cultural, and ideological critiques rather than direct mass political organization. Explores themes of hegemony, reification, and dialectics.": "Concentra-se em críticas acadêmicas, culturais e ideológicas, em vez da organização política direta das massas. Explora temas como hegemonia, reificação e dialética.",
+  "Adapts Marxist analysis to national liberation struggles against imperial powers. Emphasizes the role of colonized subjects in overthrowing capital and empire.": "Adapta a análise marxista às lutas de libertação nacional contra potências imperialistas. Enfatiza o papel dos povos colonizados na derrubada do capital e do império.",
+  "Rejects the inevitability of capitalist collapse and the necessity of violent revolution. Seeks to achieve socialism gradually through democratic reforms and parliamentary politics.": "Rejeita a inevitabilidade do colapso capitalista e a necessidade da revolução violenta. Busca alcançar o socialismo gradualmente, por meio de reformas democráticas e da política parlamentar.",
+  "Diverges substantially from Orthodox Marxism and Leninism. Questions the inevitability of revolution, the vanguard role of the party, and the traditional nature of the state.": "Afasta-se significativamente do marxismo ortodoxo e do leninismo. Questiona a inevitabilidade da revolução, o papel de vanguarda do partido e a natureza tradicional do Estado.",
+  "Asserts that history moves through class struggle until workers overthrow capitalism. Aims to establish a completely classless and stateless society.": "Afirma que a história avança por meio da luta de classes até que os trabalhadores derrubem o capitalismo. Busca estabelecer uma sociedade totalmente sem classes e sem Estado.",
+  "Advocates the abolition of the state, capitalism, wage labor, and private property. Distributes resources based on need and relies on voluntary mutual aid.": "Defende a abolição do Estado, do capitalismo, do trabalho assalariado e da propriedade privada. Distribui recursos conforme as necessidades e baseia-se na ajuda mútua voluntária.",
+  "Opposes state authority while advocating for the collective ownership of the means of production. Distributes compensation based on the amount of labor contributed rather than need.": "Opõe-se à autoridade estatal e defende a propriedade coletiva dos meios de produção. A remuneração é distribuída conforme o trabalho realizado, e não segundo as necessidades.",
+  "Uses revolutionary industrial unionism and general strikes to overthrow capitalism and the state. Reorganizes society based on confederations of labor syndicates.": "Utiliza o sindicalismo revolucionário e greves gerais para derrubar o capitalismo e o Estado. Reorganiza a sociedade em confederações de sindicatos de trabalhadores.",
+  "Emphasizes communal ownership, mutual aid, and voluntary federations. Encompasses collectivist, communist, and syndicalist branches of anarchist thought.": "Enfatiza a propriedade comunal, a ajuda mútua e as federações voluntárias. Abrange vertentes coletivistas, comunistas e sindicalistas do pensamento anarquista.",
+  "Supports a market economy based on localism, free associations, cooperatives, free commerce, just price, and mutual credit banks. Advocates for the gradual abolition of capitalism and the state through peaceful means.": "Defende uma economia de mercado baseada no localismo, em associações livres, cooperativas, comércio livre, preço justo e bancos de crédito mútuo. Propõe a abolição gradual e pacífica do capitalismo e do Estado.",
+  "Rejects formal mass organizations in favor of informal affinity groups. Prioritizes direct, immediate attack and class conflict over gradual systemic building.": "Rejeita organizações formais de massa em favor de grupos informais de afinidade. Prioriza a ação direta e imediata e o conflito de classes, em vez da construção gradual de um sistema.",
+  "Attributes ecological and social crises directly to hierarchical power structures. Proposes restructuring society into decentralized, democratic, and ecologically sustainable communities.": "Atribui as crises ecológicas e sociais às estruturas hierárquicas de poder. Propõe reorganizar a sociedade em comunidades descentralizadas, democráticas e ecologicamente sustentáveis.",
+  "Combines animal liberation with anarchist philosophy. Argues that the state and capitalism rely fundamentally on the exploitation and commodification of non-human animals.": "Combina a libertação animal com a filosofia anarquista. Argumenta que o Estado e o capitalismo dependem da exploração e da mercantilização de animais não humanos.",
+  "Critiques civilization, technology, and domestication as sources of hierarchy and ecological destruction. Advocates dismantling industrial society in favor of small-scale, non-hierarchical communities.": "Critica a civilização, a tecnologia e a domesticação como fontes de hierarquia e destruição ecológica. Defende o desmantelamento da sociedade industrial em favor de comunidades pequenas e não hierárquicas.",
+  "Fuses the anarchist critique of hierarchy with environmentalism. Argues that human domination of nature stems directly from the domination of humans over humans.": "Une a crítica anarquista à hierarquia ao ambientalismo. Argumenta que a dominação humana sobre a natureza decorre da dominação de algumas pessoas sobre outras.",
+  "Proposes libertarian municipalism through direct democratic popular assemblies. Confederates municipalities to challenge and ultimately replace the nation-state.": "Propõe o municipalismo libertário por meio de assembleias populares de democracia direta. Confedera municípios para desafiar e, por fim, substituir o Estado-nação.",
+  "Rejects the state and traditional church hierarchy by asserting that God is the sole legitimate authority. Emphasizes pacifism and voluntary poverty based on the teachings of Leo Tolstoy.": "Rejeita o Estado e a hierarquia eclesiástica tradicional, afirmando que Deus é a única autoridade legítima. Enfatiza o pacifismo e a pobreza voluntária com base nos ensinamentos de Liev Tolstói.",
+  "Rejects the state and hierarchy entirely. Seeks to establish a radically egalitarian society based on voluntary association.": "Rejeita completamente o Estado e as hierarquias. Busca estabelecer uma sociedade radicalmente igualitária, baseada na associação voluntária.",
+  "Synthesizes pan-Arabism and state-led economic planning to create a unified Arab nation. Operates through a secular vanguard party structure to modernize society.": "Combina o pan-arabismo e o planejamento econômico estatal para criar uma nação árabe unificada. Atua por meio de um partido secular de vanguarda para modernizar a sociedade.",
+  "Combines Arab nationalism, anti-imperialism, and state-led economic modernization. Implements land reforms and nationalizes key industries under a one-party framework.": "Combina nacionalismo árabe, anti-imperialismo e modernização econômica conduzida pelo Estado. Implementa reformas agrárias e nacionaliza setores estratégicos sob um sistema de partido único.",
+  "Advances a gradual, reformist transition to socialism through democratic processes, education, and research. Rejects revolutionary overthrow in favor of permeating existing institutions.": "Promove uma transição gradual e reformista ao socialismo por meio da democracia, da educação e da pesquisa. Rejeita a derrubada revolucionária e busca transformar as instituições existentes.",
+  "Advocates worker control of industry through national guilds. Balances producer control with state representation of consumers.": "Defende o controle dos trabalhadores sobre a indústria por meio de guildas nacionais. Equilibra o controle dos produtores com a representação estatal dos consumidores.",
+  "Pursues the abolition of capitalism and the establishment of a socialist economy through democratic, parliamentary means. Retains the ultimate goal of collectivizing the means of production.": "Busca abolir o capitalismo e estabelecer uma economia socialista por meios democráticos e parlamentares. Mantém como objetivo final a coletivização dos meios de produção.",
+  "Seeks to establish utopian socialism through cooperative, self-sustaining intentional communities. Focuses on social reform and improving working conditions through moral suasion.": "Busca estabelecer o socialismo utópico por meio de comunidades intencionais, cooperativas e autossuficientes. Enfatiza a reforma social e a melhoria das condições de trabalho pela persuasão moral.",
+  "Organizes society into self-sufficient communes known as phalansteries. Designs labor to align with natural human passions and desires.": "Organiza a sociedade em comunas autossuficientes chamadas falanstérios. Planeja o trabalho de modo que corresponda às paixões e aos desejos humanos.",
+  "Advocates a scientifically and industrially managed society directed by experts. Aims to eliminate poverty and improve the conditions of the working class through rational planning.": "Defende uma sociedade administrada científica e industrialmente por especialistas. Busca eliminar a pobreza e melhorar as condições da classe trabalhadora por meio de um planejamento racional.",
+  "Envisions ideal egalitarian societies achieved through peaceful, voluntary, and moral transformation. Predates and contrasts with the scientific analysis of historical materialism.": "Imagina sociedades igualitárias ideais, alcançadas por uma transformação pacífica, voluntária e moral. Antecede e contrasta com a análise científica do materialismo histórico.",
+  "Collectivizes agriculture and rural villages based on traditional familyhood. Aims for self-reliance and egalitarianism in post-colonial Tanzania.": "Coletiviza a agricultura e as aldeias rurais com base nos valores tradicionais de comunidade. Busca autossuficiência e igualdade na Tanzânia pós-colonial.",
+  "Combines socialist principles with the cultural philosophy of Négritude. Denies the existence of class struggle in traditional African societies.": "Combina princípios socialistas com a filosofia cultural da negritude. Nega a existência de luta de classes nas sociedades africanas tradicionais.",
+  "Roots socialist development in indigenous African traditions of community and shared wealth. Typically rejects the Marxist concept of class struggle.": "Enraíza o desenvolvimento socialista nas tradições africanas de comunidade e riqueza compartilhada. Em geral, rejeita o conceito marxista de luta de classes.",
+  "Attributes ecological crises directly to the capitalist imperative for infinite growth. Demands the democratic socialization of production to achieve environmental sustainability.": "Atribui as crises ecológicas à busca capitalista por crescimento infinito. Exige a socialização democrática da produção para alcançar a sustentabilidade ambiental.",
+  "Seeks to replace capitalism with a system eliminating exploitation through capitalist private property.": "Busca substituir o capitalismo por um sistema que elimine a exploração ligada à propriedade privada capitalista.",
+  "Combines a comprehensive welfare state and multi-level collective bargaining with a free-market capitalist economy. Ensures high social mobility and economic security.": "Combina um amplo Estado de bem-estar social e negociações coletivas em vários níveis com uma economia capitalista de livre mercado. Promove mobilidade social e segurança econômica.",
+  "Reconciles right-wing economic policies with left-wing social policies. Emphasizes public-private partnerships, fiscal conservatism, and a reduced welfare state.": "Concilia políticas econômicas de direita com políticas sociais de esquerda. Enfatiza parcerias público-privadas, conservadorismo fiscal e um Estado de bem-estar social menor.",
+  "Advances the interests of the working class primarily through trade unionism and associated political parties. Seeks pragmatic reforms within the capitalist system.": "Promove os interesses da classe trabalhadora principalmente por meio do sindicalismo e de partidos políticos associados. Busca reformas pragmáticas dentro do sistema capitalista.",
+  "Supports economic and social interventions to promote social justice within a capitalist mixed economy. Abandons the revolutionary goal of completely abolishing capitalism.": "Apoia intervenções econômicas e sociais para promover justiça social em uma economia mista capitalista. Abandona o objetivo revolucionário de abolir completamente o capitalismo.",
+  "Combines orthodox macroeconomic policies with targeted social welfare programs and minimum wage increases. Achieves poverty reduction without fundamentally restructuring capital accumulation.": "Combina políticas macroeconômicas ortodoxas com programas sociais direcionados e aumentos do salário mínimo. Reduz a pobreza sem reformular profundamente a acumulação de capital.",
+  "Advocates state intervention, industrial policy, and exchange rate management to promote economic growth. Focuses on middle-income countries overcoming structural stagnation.": "Defende a intervenção estatal, políticas industriais e a gestão do câmbio para promover o crescimento econômico. Concentra-se em países de renda média que buscam superar a estagnação estrutural.",
+  "Promotes state-led industrialization and strong labor rights under populist leadership. Integrates the working class into the state apparatus.": "Promove a industrialização conduzida pelo Estado e direitos trabalhistas fortes sob uma liderança populista. Integra a classe trabalhadora ao aparelho estatal.",
+  "Blends nationalism, labor rights, and social welfare in a populist framework. Seeks a third position independent of both liberal capitalism and international communism.": "Combina nacionalismo, direitos trabalhistas e bem-estar social em uma estrutura populista. Busca uma terceira posição, independente tanto do capitalismo liberal quanto do comunismo internacional.",
+  "Emphasizes agrarian reform, nationalization of strategic resources, and mass unionization. Consolidates a corporatist state structure.": "Enfatiza a reforma agrária, a nacionalização de recursos estratégicos e a sindicalização em massa. Consolida uma estrutura estatal corporativista.",
+  "Relies on import substitution industrialization and heavy state intervention to modernize developing economies. Dominates post-colonial and Latin American economic policy mid-20th century.": "Baseia-se na industrialização por substituição de importações e em forte intervenção estatal para modernizar economias em desenvolvimento. Marcou políticas econômicas pós-coloniais e latino-americanas em meados do século XX.",
+  "Prioritizes rapid economic growth and modernization through active state direction of the economy. Utilizes protectionism and public credit in the periphery.": "Prioriza o crescimento econômico rápido e a modernização por meio da direção ativa da economia pelo Estado. Utiliza protecionismo e crédito público na periferia.",
+  "Argues that individual liberty requires state intervention to address poverty, healthcare, and education. Shifts from strictly negative liberty to encompassing positive liberty.": "Argumenta que a liberdade individual exige intervenção estatal para enfrentar a pobreza e garantir saúde e educação. Amplia a noção de liberdade para incluir a liberdade positiva.",
+  "Seeks to reform and regulate the excesses of capitalism through government action. Focuses on anti-monopoly laws, labor rights, and direct democracy mechanisms.": "Busca reformar e regular os excessos do capitalismo por meio da ação governamental. Enfatiza leis antimonopólio, direitos trabalhistas e mecanismos de democracia direta.",
+  "Advocates an active federal government to provide economic security and regulate the private sector. Emerges as a response to economic depression through public works and social safety nets.": "Defende um governo federal atuante para garantir segurança econômica e regular o setor privado. Surge como resposta à depressão econômica, com obras públicas e redes de proteção social.",
+  "Proposes a single tax on the unimproved value of land while eliminating taxes on labor and investment. Argues that natural resources belong equally to all members of society.": "Propõe um imposto único sobre o valor da terra sem benfeitorias, eliminando impostos sobre o trabalho e o investimento. Defende que os recursos naturais pertencem igualmente a toda a sociedade.",
+  "Combines support for civil liberties and a market economy with an expansive view of the state's role in providing social welfare. Sits at the intersection of classical liberalism and social democracy.": "Combina o apoio às liberdades civis e à economia de mercado com uma atuação ampla do Estado na promoção do bem-estar social. Situa-se entre o liberalismo clássico e a social-democracia.",
+  "Rejects the revolutionary overthrow of capitalism in favor of gradual modification. Pursues change through democratic politics, unions, and social movements.": "Rejeita a derrubada revolucionária do capitalismo em favor de mudanças graduais. Busca transformações por meio da política democrática, dos sindicatos e dos movimentos sociais.",
+  "Encompasses political ideologies that support equality and concern for the disadvantaged.": "Abrange ideologias políticas que defendem a igualdade e se preocupam com pessoas em situação de desvantagem.",
+  "Serves as the intellectual root of social democracy's turn to reform within capitalism.": "É uma das bases intelectuais da guinada reformista da social-democracia dentro do capitalismo.",
+  "Sparks the Second International's central debate, where Bernstein revises Marx while Kautsky defends the original doctrine.": "Está no centro do debate da Segunda Internacional: Bernstein revisa Marx, enquanto Kautsky defende a doutrina original.",
+  "Influences Bernstein during his time in London in the 1890s, shaping his gradualist approach.": "Influencia Bernstein durante sua estadia em Londres na década de 1890 e molda sua abordagem gradualista.",
+  "Constitutes the first major internal revision of Marx, marking a definitive departure from orthodoxy.": "Constitui a primeira grande revisão interna de Marx e marca um afastamento definitivo da ortodoxia.",
+  "Ties Fabian ideas to the party through Sidney Webb's drafting of Labour's 1918 constitution.": "Liga as ideias fabianas ao partido por meio da participação de Sidney Webb na elaboração da constituição trabalhista de 1918.",
+  "Shares an origin and border, diverging primarily on whether capitalism must be transcended or merely tamed.": "Compartilha origens e fronteiras, mas diverge principalmente sobre a necessidade de superar ou apenas limitar o capitalismo.",
+  "Provokes attacks from Kautsky, who views the vanguard party and the 1917 seizure of power as a break with Marxism.": "Recebe críticas de Kautsky, que considera o partido de vanguarda e a tomada do poder em 1917 uma ruptura com o marxismo.",
+  "Claims Lenin's legacy while actively opposing the state doctrine codified by Stalin.": "Reivindica o legado de Lenin enquanto se opõe ativamente à doutrina estatal codificada por Stalin.",
+  "Draws criticism from Marxists like Walter Rodney for denying the existence of class struggle in African societies.": "É criticado por marxistas como Walter Rodney por negar a existência da luta de classes nas sociedades africanas.",
+  "Aims for a classless, stateless society, splitting during the First International over the necessity of a transitional workers' state.": "Busca uma sociedade sem classes e sem Estado. Na Primeira Internacional, dividiu-se em torno da necessidade de um Estado de transição dos trabalhadores.",
+  "Contrasts with the scientific socialism of Marx and Engels, who nevertheless borrowed its underlying critique of capitalism.": "Contrasta com o socialismo científico de Marx e Engels, embora ambos tenham aproveitado sua crítica fundamental ao capitalismo.",
+  "Places industry in the hands of workers' organizations, though differing on the necessity of a state to represent consumers.": "Coloca a indústria nas mãos das organizações de trabalhadores, mas diverge sobre a necessidade de um Estado que represente os consumidores.",
+  "Ties ecological crisis to social structure, diverging on whether the primary cause is hierarchy or capitalism.": "Relaciona a crise ecológica à estrutura social, mas diverge sobre se sua causa principal é a hierarquia ou o capitalismo.",
+  "Aligns closely with the Third Way, leading many on the left to classify the two as essentially identical.": "Aproxima-se da Terceira Via, levando muitos na esquerda a considerar as duas essencialmente iguais."
+};
+let language = localStorage.getItem("left-zoomed-in-language") === "pt" ? "pt" : "en";
+function text(value){return language==="pt"?(PT[value]||value):value}
+document.documentElement.lang=language==="pt"?"pt-BR":"en";
+document.title=text("The Left, Zoomed In");
+function setLanguage(next){
+  const aboutWasOpen=about.classList.contains("on");
+  language=next;
+  localStorage.setItem("left-zoomed-in-language",language);
+  document.documentElement.lang=language==="pt"?"pt-BR":"en";
+  document.title=text("The Left, Zoomed In");
+  hint.setAttribute("aria-label",text("Show menu"));
+  if(mode==="zoom")showZoom(path[path.length-1]);else showSplit(path[path.length-1],null);
+  if(aboutWasOpen)about.classList.add("on");
+}
+
+const link=(a,b,note)=>{(a.links=a.links||[]).push({to:b,note});(b.links=b.links||[]).push({to:a,note})};
+link(revisionism,socialDemocracy,"Serves as the intellectual root of social democracy's turn to reform within capitalism.");
+link(revisionism,orthodoxMarxism,"Sparks the Second International's central debate, where Bernstein revises Marx while Kautsky defends the original doctrine.");
+link(revisionism,fabianism,"Influences Bernstein during his time in London in the 1890s, shaping his gradualist approach.");
+link(revisionism,heterodoxMarxism,"Constitutes the first major internal revision of Marx, marking a definitive departure from orthodoxy.");
+link(fabianism,laborism,"Ties Fabian ideas to the party through Sidney Webb's drafting of Labour's 1918 constitution.");
+link(democraticSocialism,socialDemocracy,"Shares an origin and border, diverging primarily on whether capitalism must be transcended or merely tamed.");
+link(leninism,orthodoxMarxism,"Provokes attacks from Kautsky, who views the vanguard party and the 1917 seizure of power as a break with Marxism.");
+link(trotskyism,sovietML,"Claims Lenin's legacy while actively opposing the state doctrine codified by Stalin.");
+link(antiColonialMarxism,africanSocialism,"Draws criticism from Marxists like Walter Rodney for denying the existence of class struggle in African societies.");
+link(anarchoCommunism,communism,"Aims for a classless, stateless society, splitting during the First International over the necessity of a transitional workers' state.");
+link(utopianSocialism,communism,"Contrasts with the scientific socialism of Marx and Engels, who nevertheless borrowed its underlying critique of capitalism.");
+link(guildSocialism,anarchoSyndicalism,"Places industry in the hands of workers' organizations, though differing on the necessity of a state to represent consumers.");
+link(greenAnarchism,ecoSocialism,"Ties ecological crisis to social structure, diverging on whether the primary cause is hierarchy or capitalism.");
+link(thirdWay,socialLiberalism,"Aligns closely with the Third Way, leading many on the left to classify the two as essentially identical.");
+
+const stage=document.getElementById("stage"),bar=document.getElementById("bar"),about=document.getElementById("about"),hint=document.getElementById("hint");
+hint.setAttribute("aria-label",text("Show menu"));
+const TD=matchMedia("(prefers-reduced-motion:reduce)").matches?0:720;
+let path=[T],mode="zoom",busy=false,timer;
+function lum(h){const n=parseInt(h.slice(1),16);return(.299*(n>>16)+.587*((n>>8)&255)+.114*(n&255))/255}
+function fitTitle(p){
+ const title=p.querySelector("h2"),desc=p.querySelector("p");
+ if(!title||!desc)return;
+ title.style.removeProperty("font-size");
+ const content=title.parentElement,style=getComputedStyle(content);
+ let available=content.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
+ if(style.flexDirection==="column"){const g=parseFloat(style.rowGap||style.gap||0);[...content.children].forEach(c=>{if(c!==title)available-=c.getBoundingClientRect().height+g})}
+ available-=2;
+ const max=parseFloat(getComputedStyle(title).fontSize);
+ if(!content.clientHeight||!Number.isFinite(max))return;
+ let low=10,high=max;
+ for(let i=0;i<8;i++){
+  const size=(low+high)/2;
+  title.style.fontSize=size+"px";
+    if(title.scrollHeight<=available&&title.scrollWidth<=title.clientWidth)low=size;else high=size;
+ }
+ title.style.fontSize=low+"px";
+}
+const titleObserver=new ResizeObserver(entries=>entries.forEach(entry=>fitTitle(entry.target)));
+function panel(n,cls){
+ const d=document.createElement("div");d.className="panel "+cls;d.tabIndex=0;d.setAttribute("role","button");
+ d.style.background=n.c[0];d.style.color=lum(n.c[0])>.55?"#14141a":"#fff";
+ d.style.setProperty("--s",n.c[1]!==n.c[0]?n.c[1]:"transparent");
+ d.innerHTML=`<div class="in"><h2>${text(n.name)}</h2><p>${text(n.desc)}</p></div>`;
+ titleObserver.observe(d);return d;
+}
+function showBar(){bar.classList.add("show");hint.classList.add("gone");clearTimeout(timer);timer=setTimeout(hideBar,2800)}
+function hideBar(){if(bar.matches(":hover")||about.matches(":hover"))return timer=setTimeout(hideBar,1500);bar.classList.remove("show");about.classList.remove("on");hint.classList.remove("gone")}
+hint.onclick=showBar;bar.onpointermove=showBar;bar.addEventListener("focusin",showBar);
+addEventListener("pointermove",e=>{if(e.pointerType==="mouse"&&e.clientY<90)showBar()});
+const tip=document.getElementById("tip");
+function showTip(t,el){tip.textContent=t;tip.style.display="block";const r=el.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight;
+ tip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";tip.style.top=(r.top-h-8>8?r.top-h-8:r.bottom+8)+"px"}
+function hideTip(){tip.style.display="none"}
+function chip(l){
+ const c=document.createElement("span");c.className="chip";c.tabIndex=0;c.setAttribute("role","link");c.setAttribute("aria-label",text(l.to.name)+": "+text(l.note));c.textContent="\u2194 "+text(l.to.name);
+ c.onpointerenter=()=>showTip(text(l.note),c);c.onpointerleave=hideTip;c.onfocus=()=>showTip(text(l.note),c);c.onblur=hideTip;
+ c.onclick=e=>{e.stopPropagation();hideTip();goTo(l.to)};
+ c.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();hideTip();goTo(l.to)}};
+ return c;
+}
+function fillAbout(cur){about.innerHTML=`<b>${text(cur.name)}</b><p>${text(cur.desc)}</p>`}
+function pathTo(t,cur=T,acc=[T]){if(cur===t)return acc;for(const k of cur.kids){const r=pathTo(t,k,[...acc,k]);if(r)return r}return null}
+function goTo(t){
+ if(busy)return;const p=pathTo(t);if(!p||p.length<2)return;
+ const parent=p[p.length-2],idx=parent.kids.indexOf(t);path=p.slice(0,-1);
+ const ps=showSplit(parent,idx);setTimeout(()=>ps[idx].classList.add("flash"),TD);
+}
+function renderBar(){
+ bar.innerHTML="";const atRoot=mode==="zoom"&&path.length===1;
+ if(!atRoot){const b=document.createElement("button");b.textContent=text("Back");b.onclick=back;bar.appendChild(b);const s=document.createElement("span");s.className="sep";bar.appendChild(s)}
+ const cr=document.createElement("div");cr.id="crumbs";
+ path.forEach((n,i)=>{if(i){const s=document.createElement("i");s.textContent="›";cr.appendChild(s)}const b=document.createElement("button");b.textContent=text(n.name);b.onclick=()=>jump(i);cr.appendChild(b)});
+ bar.appendChild(cr);
+ if(mode==="split"){const s=document.createElement("span");s.className="sep";bar.appendChild(s);const a=document.createElement("button");a.textContent=text("About");a.onclick=()=>{about.classList.toggle("on");showBar()};bar.appendChild(a);const cur=path[path.length-1];fillAbout(cur)}
+ const sep=document.createElement("span");sep.className="sep";bar.appendChild(sep);
+ const languageButton=document.createElement("button");languageButton.textContent=language==="pt"?"EN":"PT";
+ languageButton.setAttribute("aria-label",text(language==="pt"?"Switch to English":"Switch to Portuguese"));
+ languageButton.onclick=()=>setLanguage(language==="pt"?"en":"pt");bar.appendChild(languageButton);
+ about.classList.remove("on");
+}
+function showZoom(n){
+ mode="zoom";stage.innerHTML="";stage.style.background=n.c[0];
+ const s=document.createElement("div");s.className="split row";const p=panel(n,"zoom");
+ if(!n.kids.length&&n.links&&n.links.length){const L=document.createElement("div");L.className="links";n.links.forEach(l=>L.appendChild(chip(l)));p.querySelector(".in").appendChild(L)}
+ p.style.flex="1";s.appendChild(p);stage.appendChild(s);
+ p.onclick=()=>{if(n.kids.length&&!busy)showSplit(n,null)};p.onkeydown=e=>{if(e.key==="Enter")p.click()};
+ renderBar();
+}
+function showSplit(n,focus){
+ mode="split";stage.innerHTML="";stage.style.background=n.c[0];
+ const wide=innerWidth>760,many=n.kids.length>=5;
+ const s=document.createElement("div");s.className="split "+(many?"bands column":("cols "+(wide?"row":"column")));
+ const ps=n.kids.map((k,i)=>{
+  const p=panel(k,"");p.style.flexGrow=focus===null?0:(i===focus?1:0);
+  p.onclick=()=>open(n,i,ps);p.onkeydown=e=>{if(e.key==="Enter")p.click()};s.appendChild(p);return p;
+ });
+ stage.appendChild(s);renderBar();
+ requestAnimationFrame(()=>requestAnimationFrame(()=>ps.forEach((p,i)=>{if(focus===null)p.style.transitionDelay=(i*60)+"ms";p.style.flexGrow=1})));
+ return ps;
+}
+function open(parent,i,ps){
+ if(busy)return;busy=true;hideBar();
+ ps.forEach((p,j)=>{if(j!==i){p.style.flexGrow=0;p.style.opacity=0}});
+ setTimeout(()=>{const k=parent.kids[i];path.push(k);busy=false;if(k.kids.length)showSplit(k,null);else showZoom(k)},TD);
+}
+function back(){
+ if(busy)return;
+ if(mode==="split"&&path.length===1){showZoom(T);return}
+ const child=path.pop(),parent=path[path.length-1];showSplit(parent,parent.kids.indexOf(child));
+}
+function jump(i){
+ if(busy||(i===path.length-1&&(mode==="split"||!path[i].kids.length)))return;
+ path=path.slice(0,i+1);if(i===0)showZoom(T);else showSplit(path[i],null);
+}
+addEventListener("keydown",e=>{if((e.key==="Escape"||e.key==="Backspace")&&!(mode==="zoom"&&path.length===1)){e.preventDefault();back()}});
+showZoom(T);showBar();
+</script>
+</body>
+</html>
